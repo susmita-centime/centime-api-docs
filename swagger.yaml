@@ -17,7 +17,7 @@ consumes:
 produces:
 - application/json
 paths:
-  /user/{loginId}:
+  /users/{loginId}:
     get:
       tags:
       - User
@@ -92,7 +92,7 @@ paths:
           description: Success or Partial Success Response for Put/Post methods
           schema:
             $ref: '#/definitions/inline_response_200_1'
-  /client/{clientId}/users:
+  /clients/{clientId}/users:
     get:
       tags:
       - User
@@ -149,7 +149,7 @@ paths:
           description: Success or Partial Success Response for Put/Post methods
           schema:
             $ref: '#/definitions/inline_response_200_1'
-  /client/{clientId}/users/sql:
+  /clients/{clientId}/users/sql:
     post:
       tags:
       - User
@@ -170,7 +170,7 @@ paths:
           description: Response for the GET request
           schema:
             $ref: '#/definitions/inline_response_200'
-  /partner/{partnerName}:
+  /partners/{partnerName}:
     get:
       tags:
       - Partner
@@ -244,6 +244,38 @@ paths:
           description: Success or Partial Success Response for Put/Post methods
           schema:
             $ref: '#/definitions/inline_response_200_1'
+  /partners/{partnerName}/clientActivationList:
+    get:
+      tags:
+      - Partner
+      summary: Fetch Whitelist and Blacklist strings for a partner and given domain
+      parameters:
+      - name: partnerName
+        in: path
+        description: Partner Name
+        required: true
+        type: string
+      - name: domain
+        in: query
+        description: Domain name to be matched for Whitelist and Blacklist
+        required: false
+        type: string
+      - name: transactionId
+        in: header
+        description: Transaction Id for traceability
+        required: false
+        type: string
+      - name: requestTimestamp
+        in: header
+        description: Request Timestamp for traceability
+        required: false
+        type: string
+        format: date-time
+      responses:
+        "200":
+          description: Response for the GET request
+          schema:
+            $ref: '#/definitions/inline_response_200_activation_list'
   /partners:
     post:
       tags:
@@ -485,6 +517,19 @@ definitions:
         description: More information about the operation
     title: status
     description: Return Status of the API.
+  clientActivationList:
+    type: object
+    properties:
+      partnerName:
+        type: string
+      whitelist:
+        type: string
+        description: Comma separated items marked as whitelist
+      blacklist:
+        type: string
+        description: Comma separated items marked as blacklist
+    title: clientActivationList
+    description: Returns whitelist and blacklist for a given partner that matches for a domain. If domain is not specified, returns all items
   centimeRequestHeader:
     type: object
     properties:
@@ -586,6 +631,17 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/partner'
+      errors:
+        $ref: '#/definitions/errors'
+  inline_response_200_activation_list:
+    type: object
+    properties:
+      centimeResponseHeader:
+        $ref: '#/definitions/centimeResponseHeader'
+      status:
+        $ref: '#/definitions/status'
+      clientActivationList:
+        $ref: '#/definitions/clientActivationList'
       errors:
         $ref: '#/definitions/errors'
   inline_response_200_1:
