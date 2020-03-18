@@ -5,6 +5,11 @@ info:
   title: Data Service Core API
 host: go.dev.centime.com
 basePath: /core/1.0/
+tags:
+- name: User
+  description: User Data Service - CRUD operations on User table
+- name: Partner
+  description: Partner Data Service - CRUD operations on Partner table.
 schemes:
 - https
 consumes:
@@ -14,6 +19,8 @@ produces:
 paths:
   /user/{loginId}:
     get:
+      tags:
+      - User
       summary: Fetch User by login Id
       parameters:
       - name: loginId
@@ -38,6 +45,8 @@ paths:
           schema:
             $ref: '#/definitions/inline_response_200'
     put:
+      tags:
+      - User
       summary: Update User by login Id
       description: |2-
 
@@ -64,6 +73,8 @@ paths:
           schema:
             $ref: '#/definitions/inline_response_200_1'
     delete:
+      tags:
+      - User
       summary: Deactivate User by login Id
       parameters:
       - name: loginId
@@ -83,6 +94,8 @@ paths:
             $ref: '#/definitions/inline_response_200_1'
   /client/{clientId}/users:
     get:
+      tags:
+      - User
       summary: Fetch All Users by clientId
       parameters:
       - name: clientId
@@ -117,6 +130,8 @@ paths:
           schema:
             $ref: '#/definitions/inline_response_200'
     post:
+      tags:
+      - User
       summary: Create Users for a specific client
       parameters:
       - name: clientId
@@ -136,6 +151,8 @@ paths:
             $ref: '#/definitions/inline_response_200_1'
   /client/{clientId}/users/sql:
     post:
+      tags:
+      - User
       summary: Execute a dynamic query
       parameters:
       - name: clientId
@@ -143,6 +160,112 @@ paths:
         description: Unique Client Id - The PK to the client table
         required: true
         type: integer
+      - in: body
+        name: queryJSON
+        required: true
+        schema:
+          $ref: '#/definitions/centimeDSSqlRequest'
+      responses:
+        "200":
+          description: Response for the GET request
+          schema:
+            $ref: '#/definitions/inline_response_200'
+  /partner/{partnerName}:
+    get:
+      tags:
+      - Partner
+      summary: Fetch Partner by partner name
+      parameters:
+      - name: partnerName
+        in: path
+        description: Partner Name
+        required: true
+        type: string
+      - name: transactionId
+        in: header
+        description: Transaction Id for traceability
+        required: false
+        type: string
+      - name: requestTimestamp
+        in: header
+        description: Request Timestamp for traceability
+        required: false
+        type: string
+        format: date-time
+      responses:
+        "200":
+          description: Response for the GET request
+          schema:
+            $ref: '#/definitions/inline_response_200_partner'
+    put:
+      tags:
+      - Partner
+      summary: Update Partner by partner name
+      description: |2
+
+        **Read-only fields**, which means they cannot be updated using this API.
+
+        `partnerId`
+
+        `partnerName`
+      parameters:
+      - name: partnerName
+        in: path
+        description: Partner name
+        required: true
+        type: string
+      - in: body
+        name: partner
+        required: true
+        schema:
+          $ref: '#/definitions/centimePartnerDSRequest'
+      responses:
+        "200":
+          description: Success or Partial Success Response for Put/Post methods
+          schema:
+            $ref: '#/definitions/inline_response_200_1'
+    delete:
+      tags:
+      - Partner
+      summary: Deactivate partner by partner name
+      parameters:
+      - name: partnerName
+        in: path
+        description: Partner name
+        required: true
+        type: string
+      - in: body
+        name: centimeRequestHeader
+        required: false
+        schema:
+          $ref: '#/definitions/centimeRequestHeader'
+      responses:
+        "200":
+          description: Success or Partial Success Response for Put/Post methods
+          schema:
+            $ref: '#/definitions/inline_response_200_1'
+  /partners:
+    post:
+      tags:
+      - Partner
+      summary: Create Partners for Centime
+      parameters:
+      - in: body
+        name: partners
+        required: true
+        schema:
+          $ref: '#/definitions/centimePartnerDSBulkRequest'
+      responses:
+        "200":
+          description: Success or Partial Success Response for Put/Post methods
+          schema:
+            $ref: '#/definitions/inline_response_200_1'
+  /partners/sql:
+    post:
+      tags:
+      - Partner
+      summary: Execute a dynamic query
+      parameters:
       - in: body
         name: queryJSON
         required: true
@@ -167,6 +290,76 @@ definitions:
     type: array
     items:
       $ref: '#/definitions/error'
+  partner:
+    type: object
+    required:
+    - city
+    - country
+    - mobile
+    - primaryContactPerson
+    - primaryEmail
+    properties:
+      partnerId:
+        type: integer
+        format: int32
+        title: This is the PK of the Partner table.
+        readOnly: true
+      partnerName:
+        type: string
+        title: Name of the partner. It is unique across Centime platform.
+      legalName:
+        type: string
+        title: Legal Name
+      addressId:
+        type: integer
+        format: int32
+        description: This is a FK to Address table.
+        title: 'Address Identifier. '
+      city:
+        type: string
+        title: City
+      country:
+        type: string
+        title: Country
+      webURL:
+        type: string
+        title: Web URL
+      primaryEmail:
+        type: string
+        title: Primary Email
+      secondaryEmail:
+        type: string
+        title: Secondary Email
+      phone:
+        type: string
+        title: Primary Phone Number
+      mobile:
+        type: string
+        title: Primary Mobile number
+      secondaryMobile:
+        type: string
+        title: Secondary Mobile number
+      activeStatus:
+        type: string
+        title: User Status
+        default: ACTIVE
+        enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+        - CLOSED
+      primaryContactPerson:
+        type: string
+        title: Name of the Primary Contact person
+      parentUserAccessFlag:
+        type: string
+        title: Parent User Access Flag
+        default: "no"
+        enum:
+        - "yes"
+        - "no"
+    title: partner
+    description: A Centime Partner
   user:
     type: object
     required:
@@ -181,7 +374,6 @@ definitions:
       loginId:
         type: string
         title: The login email of Centime user. It is unique across Centime platform.
-        readOnly: true
       clientId:
         type: integer
         format: int32
@@ -320,6 +512,13 @@ definitions:
         $ref: '#/definitions/centimeRequestHeader'
       user:
         $ref: '#/definitions/user'
+  centimePartnerDSRequest:
+    type: object
+    properties:
+      centimeRequestHeader:
+        $ref: '#/definitions/centimeRequestHeader'
+      user:
+        $ref: '#/definitions/partner'
   centimeUserDSBulkRequest:
     type: object
     properties:
@@ -329,6 +528,15 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/user'
+  centimePartnerDSBulkRequest:
+    type: object
+    properties:
+      centimeRequestHeader:
+        $ref: '#/definitions/centimeRequestHeader'
+      partners:
+        type: array
+        items:
+          $ref: '#/definitions/partner'
   centimeDSSqlRequest:
     type: object
     properties:
@@ -362,6 +570,22 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/user'
+      errors:
+        $ref: '#/definitions/errors'
+  inline_response_200_partner:
+    type: object
+    properties:
+      centimeResponseHeader:
+        $ref: '#/definitions/centimeResponseHeader'
+      status:
+        $ref: '#/definitions/status'
+      count:
+        type: integer
+        description: count of the results returned
+      partners:
+        type: array
+        items:
+          $ref: '#/definitions/partner'
       errors:
         $ref: '#/definitions/errors'
   inline_response_200_1:
