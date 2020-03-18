@@ -12,81 +12,103 @@ consumes:
 produces:
 - application/json
 paths:
-  /user/{userId}:
+  /user/{loginId}:
     get:
-      summary: Fetch User by Id
+      summary: Fetch User by login Id
       parameters:
-      - name: userId
+      - name: loginId
         in: path
+        description: The login email of the user
         required: true
-        type: integer
+        type: string
+      - name: transactionId
+        in: header
+        description: Transaction Id for traceability
+        required: false
+        type: string
+      - name: requestTimestamp
+        in: header
+        description: Request Timestamp for traceability
+        required: false
+        type: string
+        format: date-time
       responses:
         "200":
           description: Response for the GET request
           schema:
             $ref: '#/definitions/inline_response_200'
-        default:
-          description: Generic Error Response
-          schema:
-            $ref: '#/definitions/Error Response'
-          x-oad-type: response
     put:
-      summary: Update User by Id
+      summary: Update User by login Id
+      description: |2-
+
+        **Read-only fields**, which means they cannot be updated using this API.
+
+        `userId`
+        `clientId`
+        `loginId`
+        `lastPasswordResetDate`
       parameters:
-      - name: userId
+      - name: loginId
         in: path
+        description: The login email of the user
         required: true
-        type: integer
+        type: string
       - in: body
-        name: User
+        name: user
         required: true
         schema:
-          $ref: '#/definitions/User'
+          $ref: '#/definitions/centimeUserDSRequest'
       responses:
         "200":
           description: Success or Partial Success Response for Put/Post methods
           schema:
             $ref: '#/definitions/inline_response_200_1'
-        default:
-          description: Generic Error Response
-          schema:
-            $ref: '#/definitions/Error Response'
-          x-oad-type: response
     delete:
-      summary: Delete User by Id
+      summary: Deactivate User by login Id
       parameters:
-      - name: userId
+      - name: loginId
         in: path
+        description: The login email of the user
         required: true
-        type: integer
+        type: string
+      - in: body
+        name: centimeRequestHeader
+        required: false
+        schema:
+          $ref: '#/definitions/centimeRequestHeader'
       responses:
         "200":
-          description: Delete Success Response
+          description: Success or Partial Success Response for Put/Post methods
           schema:
-            $ref: '#/definitions/inline_response_200_2'
-        default:
-          description: Generic Error Response
-          schema:
-            $ref: '#/definitions/Error Response'
-          x-oad-type: response
-  /users:
+            $ref: '#/definitions/inline_response_200_1'
+  /client/{clientId}/users:
     get:
-      summary: Fetch Users by clientId and dynamic filters
+      summary: Fetch All Users by clientId
       parameters:
       - name: clientId
-        in: query
+        in: path
+        description: Unique Client Id - The PK to the client table
         required: true
         type: integer
-      - name: filter
-        in: query
+      - name: transactionId
+        in: header
+        description: Transaction Id for traceability
         required: false
         type: string
+      - name: requestTimestamp
+        in: header
+        description: Request Timestamp for traceability
+        required: false
+        type: string
+        format: date-time
       - name: start
         in: query
+        description: Starting index of the results
         required: false
         type: integer
       - name: limit
         in: query
+        description: Num of results to be fetched
         required: false
         type: integer
       responses:
@@ -94,131 +116,331 @@ paths:
           description: Response for the GET request
           schema:
             $ref: '#/definitions/inline_response_200'
-        default:
-          description: Generic Error Response
-          schema:
-            $ref: '#/definitions/Error Response'
-          x-oad-type: response
     post:
-      summary: Create Users for a ClientID
+      summary: Create Users for a specific client
       parameters:
       - name: clientId
-        in: query
+        in: path
+        description: Unique Client Id - The PK to the client table
         required: true
         type: integer
       - in: body
         name: users
         required: true
         schema:
-          type: array
-          items:
-            $ref: '#/definitions/User'
+          $ref: '#/definitions/centimeUserDSBulkRequest'
       responses:
         "200":
           description: Success or Partial Success Response for Put/Post methods
           schema:
             $ref: '#/definitions/inline_response_200_1'
-        default:
-          description: Generic Error Response
+  /client/{clientId}/users/sql:
+    post:
+      summary: Execute a dynamic query
+      parameters:
+      - name: clientId
+        in: path
+        description: Unique Client Id - The PK to the client table
+        required: true
+        type: integer
+      - in: body
+        name: queryJSON
+        required: true
+        schema:
+          $ref: '#/definitions/centimeDSSqlRequest'
+      responses:
+        "200":
+          description: Response for the GET request
           schema:
-            $ref: '#/definitions/Error Response'
-          x-oad-type: response
+            $ref: '#/definitions/inline_response_200'
 definitions:
   error:
     type: object
     properties:
       code:
         type: string
-      detail:
+      severity:
         type: string
-  fault:
-    type: object
-    properties:
-      code:
+      message:
         type: string
-      detail:
-        type: string
-    title: Non fatal errors
-  faults:
+  errors:
     type: array
     items:
-      $ref: '#/definitions/fault'
-  User:
+      $ref: '#/definitions/error'
+  user:
     type: object
+    required:
+    - displayName
+    - primaryEmail
     properties:
-      LoginID:
+      userId:
+        type: integer
+        format: int32
+        title: This is the PK of the Users table.
+        readOnly: true
+      loginId:
         type: string
+        title: The login email of Centime user. It is unique across Centime platform.
+        readOnly: true
+      clientId:
+        type: integer
+        format: int32
+        description: This is a PK to the Client table.
+        title: The Client Identifier
+        readOnly: true
       firstName:
         type: string
+        title: First Name
       lastName:
         type: string
-      primaryEmail:
+        title: Last Name
+      displayName:
         type: string
-      primaryMobile:
+        title: Display Name
+      middleName:
         type: string
-      DisplayName:
+        title: Middle Name
+      employeeNumber:
         type: string
+        title: Employee code
+      departmentName:
+        type: string
+        title: Department Name
       addressId:
         type: integer
+        format: int32
+        description: This is a PK to Address table.
+        title: 'Address Identifier. '
+      primaryEmail:
+        type: string
+        title: Primary Email
+      secondaryEmail:
+        type: string
+        title: Secondary Email
+      primaryPhone:
+        type: string
+        title: Primary Phone Number
+      PrimaryMobile:
+        type: string
+        title: Primary Mobile number
+      secondaryMobile:
+        type: string
+        title: Secondary Mobile number
+      city:
+        type: string
+        title: City
+      country:
+        type: string
+        title: Country
+      birthDate:
+        type: string
+        format: date
+        title: Birth Date
+      activeStatus:
+        type: string
+        title: User Status
+        default: ACTIVE
+        enum:
+        - ACTIVE
+        - INACTIVE
+        - SUSPENDED
+        - CLOSED
+      gender:
+        type: string
+        title: Gender
+        enum:
+        - male
+        - female
+        - trans
+      notificationPreference:
+        type: string
+        title: Notification Preference
+        default: email
+        enum:
+        - email
+        - mobile
+        - any
+        - both
+      supervisorId:
+        type: integer
+        format: int32
+        title: Supervisor ID
+        default: 0
+      lastPasswordResetDate:
+        type: string
+        format: date-time
+        description: |-
+          This would be intialized with the timestamp when User record is created in DB.
+          Subsequently it would be updated only when password is reset.  It's a Read-Only attribute.
+        title: Last Password Reset Date
+        readOnly: true
+    title: user
+    description: "A Centime User can be:\n\n- Centime Admin  \n- Partner Admin\n- Client Admin"
+  status:
+    type: object
+    properties:
+      result:
+        type: string
+        description: |2-
+
+          Allowed values: [`SUCCESS`, `FAILURE`, `PARTIAL_SUCCESS`]
+        enum:
+        - SUCCESS
+        - FAILURE
+        - PARTIAL_SUCCESS
+      message:
+        type: string
+        description: More information about the operation
+    title: status
+    description: Return Status of the API.
+  centimeRequestHeader:
+    type: object
+    properties:
+      transactionId:
+        type: string
+        description: Transaction Id for traceability
+      requestTimestamp:
+        type: string
+        format: date-time
+        description: Request Timestamp for traceability
+  centimeResponseHeader:
+    type: object
+    properties:
+      transactionId:
+        type: string
+        description: Transaction Id for traceability
+      responseTimestamp:
+        type: string
+        format: date-time
+        description: Request Timestamp for traceability
+  centimeUserDSRequest:
+    type: object
+    properties:
+      centimeRequestHeader:
+        $ref: '#/definitions/centimeRequestHeader'
+      user:
+        $ref: '#/definitions/user'
+  centimeUserDSBulkRequest:
+    type: object
+    properties:
+      centimeRequestHeader:
+        $ref: '#/definitions/centimeRequestHeader'
+      users:
+        type: array
+        items:
+          $ref: '#/definitions/user'
+  centimeDSSqlRequest:
+    type: object
+    properties:
+      centimeRequestHeader:
+        $ref: '#/definitions/centimeRequestHeader'
+      sql:
+        $ref: '#/definitions/sqlOperation'
+  sqlOperation:
+    type: object
+    properties:
+      operation:
+        type: string
+      columns:
+        type: string
+      values:
+        type: string
+      whereclause:
+        type: string
+    description: Defines the operation (SELECT/INSERT/UPDATE), columns and where clause
   inline_response_200:
     type: object
     properties:
+      centimeResponseHeader:
+        $ref: '#/definitions/centimeResponseHeader'
       status:
-        type: string
-        default: SUCCESS
-        enum:
-        - SUCCESS
-        x-oad-type: string
-      results:
+        $ref: '#/definitions/status'
+      count:
+        type: integer
+        description: count of the results returned
+      users:
         type: array
         items:
-          $ref: '#/definitions/User'
-  Error Response:
-    type: object
-    properties:
-      status:
-        type: string
-        default: FAILED
-        enum:
-        - FAILED
-      error:
-        $ref: '#/definitions/error'
+          $ref: '#/definitions/user'
+      errors:
+        $ref: '#/definitions/errors'
   inline_response_200_1:
     type: object
     properties:
+      centimeResponseHeader:
+        $ref: '#/definitions/centimeResponseHeader'
       status:
-        type: string
-        default: SUCCESS
-        enum:
-        - SUCCESS
-        - PARTIAL_SUCCESS
-        x-oad-type: string
-      faults:
-        $ref: '#/definitions/faults'
-  inline_response_200_2:
-    type: object
-    properties:
-      status:
-        type: string
-        default: SUCCESS
-        enum:
-        - SUCCESS
-        x-oad-type: string
+        $ref: '#/definitions/status'
+      errors:
+        $ref: '#/definitions/errors'
+parameters:
+  loginId:
+    name: loginId
+    in: path
+    description: The login email of the user
+    required: true
+    type: string
+  clientId:
+    name: clientId
+    in: path
+    description: Unique Client Id - The PK to the client table
+    required: true
+    type: integer
+  transactionId:
+    name: transactionId
+    in: header
+    description: Transaction Id for traceability
+    required: false
+    type: string
+  requestTimestamp:
+    name: requestTimestamp
+    in: header
+    description: Request Timestamp for traceability
+    required: false
+    type: string
+    format: date-time
 responses:
   GETResponse:
     description: Response for the GET request
     schema:
+      type: object
+      properties:
+        status:
+          $ref: '#/definitions/status'
+        results:
+          type: array
+          items:
+            $ref: '#/definitions/user'
+  centimeUserDSGetResponse:
+    description: Response for the GET request
+    schema:
       $ref: '#/definitions/inline_response_200'
-  PutPostResponse:
+  CentimeCUDResponse:
     description: Success or Partial Success Response for Put/Post methods
     schema:
       $ref: '#/definitions/inline_response_200_1'
   DeleteResponse:
     description: Delete Success Response
     schema:
-      $ref: '#/definitions/inline_response_200_2'
+      type: object
+      properties:
+        status:
+          type: string
+          default: SUCCESS
+          enum:
+          - SUCCESS
+          x-oad-type: string
   ErrorResponse:
     description: Generic Error Response
     schema:
-      $ref: '#/definitions/Error Response'
+      type: object
+      properties:
+        status:
+          type: string
+          default: FAILED
+          enum:
+          - FAILED
+        error:
+          $ref: '#/definitions/errors'
+      title: Error Response
     x-oad-type: response
